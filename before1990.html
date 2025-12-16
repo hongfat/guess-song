@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜歌王 - 1990年以前</title>
+    <style>
+        /* 基礎設定 */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: "Microsoft JhengHei", sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+
+        /* 題號與文字 */
+        .stage-label { font-size: 3rem; color: #f39c12; margin-bottom: 20px; letter-spacing: 5px; }
+        .main-content { font-size: 6rem; font-weight: bold; text-shadow: 0 0 20px rgba(255,255,255,0.2); }
+        .sub-content { font-size: 3rem; color: #bdc3c7; margin-top: 30px; opacity: 0; transition: opacity 0.5s ease; }
+        .sub-content.show { opacity: 1; }
+
+        /* 隱藏的 YouTube 播放器 (設為透明或極小，但不能 display:none 否則無法播放) */
+        #player-container {
+            position: absolute;
+            top: -9999px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+        }
+
+        /* 播放狀態指示燈 */
+        .status-indicator {
+            margin-top: 50px;
+            font-size: 1.5rem;
+            color: #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .status-indicator.playing { color: #2ecc71; text-shadow: 0 0 10px #2ecc71; }
+        
+        /* 波形動畫 (裝飾用) */
+        .wave {
+            display: inline-block;
+            width: 5px; height: 20px; background: #2ecc71;
+            animation: wave 1s infinite ease-in-out;
+            visibility: hidden;
+        }
+        .status-indicator.playing .wave { visibility: visible; }
+        @keyframes wave { 0%, 100% { height: 10px; } 50% { height: 30px; } }
+
+        /* 底部操作提示 */
+        .footer-hint { position: absolute; bottom: 20px; font-size: 1rem; color: #555; }
+        
+        /* 當公布答案時，如果想秀出 MV，可以透過 JS 加這個 class */
+        #player-container.reveal {
+            position: relative;
+            top: 20px;
+            width: 640px;
+            height: 360px;
+            opacity: 1;
+            z-index: 10;
+            transition: all 0.5s;
+            border: 5px solid #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <div id="stage" class="stage-label">準備好了嗎？</div>
+        <div id="main" class="main-content">猜歌王大賽</div>
+        <div id="sub" class="sub-content"></div>
+        
+        <div id="status" class="status-indicator">
+            <span class="wave" style="animation-delay: 0s"></span>
+            <span class="wave" style="animation-delay: 0.1s"></span>
+            <span class="wave" style="animation-delay: 0.2s"></span>
+            <span id="status-text">音樂已待命</span>
+            <span class="wave" style="animation-delay: 0.2s"></span>
+            <span class="wave" style="animation-delay: 0.1s"></span>
+            <span class="wave" style="animation-delay: 0.0s"></span>
+        </div>
+    </div>
+
+    <div id="player-container">
+        <div id="player"></div>
+    </div>
+
+    <div class="footer-hint">
+        [空白鍵] 播放/暫停 | [→] 下一題 | [Enter] 顯示MV | F11 全螢幕
+    </div>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <script>
+        // ==========================================
+        // 🎵 歌單設定區 (只要改這裡！)
+        // ==========================================
+        // videoId: 網址 "v=" 後面的代碼
+        // start: 從第幾秒開始播 (t=60就是60秒後開始)
+        const songList = [
+            { 
+                question: "第 1 題", 
+                answer: "青蘋果樂園", 
+                artist: "小虎隊", 
+                year: "1989年",
+                videoId: "UPFeAndsDRQ", // YT連結 ID
+                start: 56 // 開始時間
+            },
+            { 
+                question: "第 2 題", 
+                answer: "五月十一彼下埔", 
+                artist: "沈文程",
+                year: "1998年",
+                videoId: "_cc1UP1zJCg", // YT連結 ID
+                start: 60 // 開始時間
+            },
+            { 
+                question: "第 3 題", 
+                answer: "五月十一彼下埔", 
+                artist: "沈文程", 
+                videoId: "_cc1UP1zJCg", // YT連結 ID
+                start: 60 // 開始時間
+            },
+            // 複製上面格式新增...
+        ];
+
+        // ==========================================
+        // 系統邏輯區
+        // ==========================================
+        let player;
+        let currentIndex = -1; 
+        let state = 'question'; // question, answer
+        let isPlaying = false;
+
+        // 1. YouTube API 準備就緒
+        function onYouTubeIframeAPIReady() {
+            // 抓取目前網址的 domain (解決 origin 問題)
+            var currentOrigin = window.location.origin; 
+            if (currentOrigin === 'null' || currentOrigin === 'file://') {
+                document.getElementById('status-text').textContent = "⚠️ 警告：請使用 Local Server 開啟，不要直接開檔案";
+                document.getElementById('status').style.color = "red";
+            }
+
+            player = new YT.Player('player', {
+                height: '360',
+                width: '640',
+                videoId: '', 
+                playerVars: {
+                    'controls': 0,
+                    'showinfo': 0,
+                    'rel': 0,
+                    'origin': currentOrigin, // 關鍵修正：加上來源
+                    'enablejsapi': 1
+                },
+                events: {
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError // 新增錯誤監聽
+                }
+            });
+        }
+
+        // 新增：錯誤處理函式
+        function onPlayerError(event) {
+            const statusText = document.getElementById('status-text');
+            let errorMsg = "";
+            switch(event.data) {
+                case 2: errorMsg = "無效的影片 ID"; break;
+                case 5: errorMsg = "HTML5 播放器錯誤"; break;
+                case 100: errorMsg = "找不到影片 (可能被刪除)"; break;
+                case 101: 
+                case 150: errorMsg = "此影片禁止嵌入 (請換一個來源)"; break;
+                default: errorMsg = "未知錯誤代碼: " + event.data;
+            }
+            statusText.textContent = "❌ 錯誤: " + errorMsg;
+            document.getElementById('status').style.color = "#e74c3c";
+            
+            // 自動彈出播放器讓你看錯誤訊息
+            document.getElementById('player-container').classList.add('reveal');
+        }
+
+        // 監聽播放狀態改變指示燈
+        function onPlayerStateChange(event) {
+            const statusDiv = document.getElementById('status');
+            const statusText = document.getElementById('status-text');
+            if (event.data == YT.PlayerState.PLAYING) {
+                statusDiv.classList.add('playing');
+                statusText.textContent = "現正播放中...";
+                isPlaying = true;
+            } else {
+                statusDiv.classList.remove('playing');
+                statusText.textContent = "音樂暫停";
+                isPlaying = false;
+            }
+        }
+
+        // 2. 畫面渲染與音樂 Cue 點
+        function render() {
+            const stageEl = document.getElementById('stage');
+            const mainEl = document.getElementById('main');
+            const subEl = document.getElementById('sub');
+            const playerContainer = document.getElementById('player-container');
+
+            // 隱藏 MV (重置狀態)
+            playerContainer.classList.remove('reveal');
+
+            if (currentIndex === -1) {
+                stageEl.textContent = "Welcome";
+                mainEl.textContent = "猜歌王大賽";
+                subEl.textContent = "按 [→] 開始";
+                subEl.classList.add('show');
+                return;
+            }
+
+            if (currentIndex >= songList.length) {
+                stageEl.textContent = "Game Over";
+                mainEl.textContent = "活動結束";
+                subEl.textContent = "";
+                // 停止音樂
+                if(player && player.stopVideo) player.stopVideo();
+                return;
+            }
+
+            const currentSong = songList[currentIndex];
+
+            if (state === 'question') {
+                stageEl.textContent = "Question";
+                mainEl.textContent = currentSong.question;
+                mainEl.style.color = "#ffffff";
+                subEl.textContent = "???";
+                subEl.classList.remove('show');
+
+                // 重要：載入音樂但不播放 (Cue)
+                if (player && player.cueVideoById) {
+                    player.cueVideoById({
+                        videoId: currentSong.videoId,
+                        startSeconds: currentSong.start
+                    });
+                    document.getElementById('status-text').textContent = "音樂已就緒 (按空白鍵播放)";
+                }
+
+            } else {
+                stageEl.textContent = "Answer";
+                mainEl.textContent = currentSong.answer;
+                mainEl.style.color = "#2ecc71";
+                subEl.innerHTML = currentSong.artist + (currentSong.year ? '<br>' + currentSong.year : '');
+                subEl.classList.add('show');
+                // 答案揭曉時，不一定要自動停止，看主持人想不想繼續播
+            }
+        }
+
+        // 3. 鍵盤控制
+        document.addEventListener('keydown', (e) => {
+            // [空白鍵]: 播放 / 暫停 (最重要功能)
+            if (e.code === 'Space') {
+                e.preventDefault(); // 防止捲動頁面
+                if (player && player.getPlayerState) {
+                    const playerState = player.getPlayerState();
+                    if (playerState === 1) { // 正在播
+                        player.pauseVideo();
+                    } else { // 沒在播
+                        player.playVideo();
+                    }
+                }
+            }
+
+            // [右鍵]: 下一階段
+            if (e.code === 'ArrowRight') {
+                if (currentIndex === -1) {
+                    currentIndex = 0;
+                    state = 'question';
+                } else if (state === 'question') {
+                    state = 'answer';
+                } else {
+                    currentIndex++;
+                    state = 'question';
+                }
+                render();
+            }
+
+            // [Enter]: 秀出 MV 畫面 (彩蛋功能)
+            if (e.code === 'Enter') {
+                const playerContainer = document.getElementById('player-container');
+                playerContainer.classList.toggle('reveal');
+            }
+        });
+
+        // 初始化
+        window.onload = render;
+    </script>
+</body>
+</html>

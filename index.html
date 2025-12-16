@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜歌王 - 選擇年代</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: "Microsoft JhengHei", sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        h1 {
+            font-size: 4rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255,255,255,0.2);
+        }
+        h2 {
+            font-size: 1.5rem;
+            color: #bdc3c7;
+            margin-bottom: 40px;
+            font-weight: normal;
+        }
+        .menu {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 400px;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+        .btn {
+            display: block;
+            padding: 20px;
+            background-color: #2c3e50;
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.5rem;
+            text-align: center;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:hover {
+            background-color: #34495e;
+            transform: translateY(-5px);
+            border-color: #f39c12;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            color: #f39c12;
+        }
+        .footer {
+            margin-top: 50px;
+            color: #555;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>猜歌王大賽</h1>
+    <h2>請選擇挑戰年代</h2>
+
+    <div class="menu">
+        <!-- 連結到你現有的檔案 -->
+        <a href="before1990.html" class="btn">📼 1990年以前</a>
+        <!-- 以下檔案尚未建立，點擊會找不到頁面，請記得複製建立 -->
+        <a href="1990s.html" class="btn">💾 1990年代</a>
+        <a href="2000s.html" class="btn">💿 2000年代</a>
+        <a href="2010s.html" class="btn">📱 2010年代</a>
+        <a href="2020s.html" class="btn">🎧 2020年代</a>
+    </div>
+
+    <div class="footer">
+        Side Project: Guess Song
+    </div>
+
+</body>
+</html>
