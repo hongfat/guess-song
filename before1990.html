@@ -72,11 +72,41 @@
             transition: all 0.5s;
             border: 5px solid #fff;
         }
+
+        /* 選單模式樣式 */
+        .menu-view {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: #1a1a1a;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* 一排5個 */
+            gap: 20px;
+            max-width: 900px;
+            width: 90%;
+        }
+        .menu-btn { padding: 20px; background-color: #34495e; color: #fff; font-size: 1.2rem; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .menu-btn:hover { background-color: #f39c12; transform: scale(1.05); color: #000; }
+        .d-none { display: none !important; }
     </style>
 </head>
 <body>
+    <!-- 選單介面 -->
+    <div id="menu-view" class="menu-view">
+        <h1 style="margin-bottom: 30px; font-size: 3rem;">請選擇題目</h1>
+        <div id="menu-grid" class="menu-grid"></div>
+        <div style="margin-top: 30px; color: #7f8c8d;">按 [Esc] 返回選單</div>
+    </div>
 
-    <div id="container">
+    <!-- 遊戲介面 -->
+    <div id="container" class="d-none">
         <div id="stage" class="stage-label">準備好了嗎？</div>
         <div id="main" class="main-content">猜歌王大賽</div>
         <div id="sub" class="sub-content"></div>
@@ -140,7 +170,7 @@
         // ==========================================
         let player;
         let currentIndex = -1; 
-        let state = 'question'; // question, answer
+        let state = 'menu'; // menu, question, answer
         let isPlaying = false;
 
         // 1. YouTube API 準備就緒
@@ -204,12 +234,42 @@
             }
         }
 
+        // 初始化選單
+        function initMenu() {
+            const grid = document.getElementById('menu-grid');
+            grid.innerHTML = '';
+            songList.forEach((song, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'menu-btn';
+                btn.textContent = song.question;
+                btn.onclick = () => {
+                    currentIndex = index;
+                    state = 'question';
+                    render();
+                };
+                grid.appendChild(btn);
+            });
+        }
+
         // 2. 畫面渲染與音樂 Cue 點
         function render() {
+            const menuView = document.getElementById('menu-view');
+            const gameContainer = document.getElementById('container');
             const stageEl = document.getElementById('stage');
             const mainEl = document.getElementById('main');
             const subEl = document.getElementById('sub');
             const playerContainer = document.getElementById('player-container');
+
+            // 切換選單/遊戲模式
+            if (state === 'menu') {
+                menuView.classList.remove('d-none');
+                gameContainer.classList.add('d-none');
+                if (player && player.stopVideo) player.stopVideo();
+                return;
+            } else {
+                menuView.classList.add('d-none');
+                gameContainer.classList.remove('d-none');
+            }
 
             // 隱藏 MV (重置狀態)
             playerContainer.classList.remove('reveal');
@@ -293,10 +353,16 @@
                 const playerContainer = document.getElementById('player-container');
                 playerContainer.classList.toggle('reveal');
             }
+
+            // [Esc]: 返回選單
+            if (e.code === 'Escape') {
+                state = 'menu';
+                render();
+            }
         });
 
         // 初始化
-        window.onload = render;
+        window.onload = () => { initMenu(); render(); };
     </script>
 </body>
 </html>
