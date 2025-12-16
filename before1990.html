@@ -92,6 +92,13 @@
             max-width: 900px;
             width: 90%;
         }
+        /* RWD: 手機版調整按鈕排列 */
+        @media (max-width: 768px) {
+            .menu-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 480px) {
+            .menu-grid { grid-template-columns: repeat(2, 1fr); }
+        }
         .menu-btn { 
             padding: 15px; background-color: #34495e; color: #fff; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s;
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
@@ -195,6 +202,7 @@
                 hint: "台語<br>男歌手",
                 answer: "五月十一彼下埔", 
                 artist: "沈文程", 
+                year: "1998年",
                 videoId: "_cc1UP1zJCg", // YT連結 ID
                 start: 60 // 開始時間
             },
