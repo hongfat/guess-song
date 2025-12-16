@@ -92,8 +92,31 @@
             max-width: 900px;
             width: 90%;
         }
-        .menu-btn { padding: 20px; background-color: #34495e; color: #fff; font-size: 1.2rem; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .menu-btn { 
+            padding: 15px; background-color: #34495e; color: #fff; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+        }
         .menu-btn:hover { background-color: #f39c12; transform: scale(1.05); color: #000; }
+        .menu-btn .btn-title { font-size: 1.4rem; font-weight: bold; }
+        .menu-btn .btn-hint { font-size: 0.9rem; color: #bdc3c7; }
+        .menu-btn:hover .btn-hint { color: #2c3e50; }
+
+        /* 手機版控制列 (固定在底部) */
+        .control-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: rgba(0,0,0,0.9); padding: 15px 0;
+            display: flex; justify-content: center; gap: 10px;
+            z-index: 100;
+        }
+        .c-btn {
+            background: #34495e; color: #fff; border: 1px solid #555;
+            padding: 10px 15px; border-radius: 5px; font-size: 1rem; cursor: pointer;
+        }
+        .c-btn:active { background: #f39c12; color: #000; }
+        
+        /* 手機版隱藏桌面提示文字 */
+        @media (max-width: 768px) { .footer-hint, .desktop-only { display: none !important; } }
+        
         .d-none { display: none !important; }
     </style>
 </head>
@@ -102,7 +125,9 @@
     <div id="menu-view" class="menu-view">
         <h1 style="margin-bottom: 30px; font-size: 3rem;">請選擇題目</h1>
         <div id="menu-grid" class="menu-grid"></div>
-        <div style="margin-top: 30px; color: #7f8c8d;">按 [Esc] 返回選單</div>
+        <div style="margin-top: 30px; color: #7f8c8d;" class="desktop-only">按 [Esc] 返回選單 | 按 [Backspace] 回首頁</div>
+        <!-- 手機版回首頁按鈕 -->
+        <button class="c-btn" style="margin-top: 20px;" onclick="window.location.href='index.html'">🏠 回首頁</button>
     </div>
 
     <!-- 遊戲介面 -->
@@ -120,6 +145,14 @@
             <span class="wave" style="animation-delay: 0.1s"></span>
             <span class="wave" style="animation-delay: 0.0s"></span>
         </div>
+
+        <!-- 遊戲控制按鈕 (手機/滑鼠操作) -->
+        <div class="control-bar">
+            <button class="c-btn" onclick="togglePlay()">⏯ 播放/暫停</button>
+            <button class="c-btn" onclick="nextStage()">➡ 下一步</button>
+            <button class="c-btn" onclick="toggleMV()">📺 看MV</button>
+            <button class="c-btn" onclick="backToMenu()">☰ 選單</button>
+        </div>
     </div>
 
     <div id="player-container">
@@ -127,7 +160,7 @@
     </div>
 
     <div class="footer-hint">
-        [空白鍵] 播放/暫停 | [→] 下一題 | [Enter] 顯示MV | F11 全螢幕
+        [空白鍵] 播放/暫停 | [→] 下一題 | [Enter] 顯示MV | F11 全螢幕 | [Esc] 返回選單 | [Backspace] 回首頁
     </div>
 
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -141,6 +174,7 @@
         const songList = [
             { 
                 question: "第 1 題", 
+                hint: "華語、團體",
                 answer: "青蘋果樂園", 
                 artist: "小虎隊", 
                 year: "1989年",
@@ -149,6 +183,7 @@
             },
             { 
                 question: "第 2 題", 
+                hint: "台語、男歌手",
                 answer: "五月十一彼下埔", 
                 artist: "沈文程",
                 year: "1998年",
@@ -157,6 +192,7 @@
             },
             { 
                 question: "第 3 題", 
+                hint: "台語、男歌手",
                 answer: "五月十一彼下埔", 
                 artist: "沈文程", 
                 videoId: "_cc1UP1zJCg", // YT連結 ID
@@ -241,7 +277,8 @@
             songList.forEach((song, index) => {
                 const btn = document.createElement('button');
                 btn.className = 'menu-btn';
-                btn.textContent = song.question;
+                btn.innerHTML = `<span class="btn-title">${song.question}</span>
+                                 <span class="btn-hint">${song.hint || ''}</span>`;
                 btn.onclick = () => {
                     currentIndex = index;
                     state = 'question';
@@ -319,45 +356,60 @@
             }
         }
 
+        // ==========================================
+        // 動作控制函式 (供鍵盤與按鈕共用)
+        // ==========================================
+        function togglePlay() {
+            if (player && player.getPlayerState) {
+                const playerState = player.getPlayerState();
+                if (playerState === 1) { // 正在播
+                    player.pauseVideo();
+                } else { // 沒在播
+                    player.playVideo();
+                }
+            }
+        }
+
+        function nextStage() {
+            if (currentIndex === -1) {
+                currentIndex = 0;
+                state = 'question';
+            } else if (state === 'question') {
+                state = 'answer';
+            } else {
+                currentIndex++;
+                state = 'question';
+            }
+            render();
+        }
+
+        function toggleMV() {
+            const playerContainer = document.getElementById('player-container');
+            playerContainer.classList.toggle('reveal');
+        }
+
+        function backToMenu() {
+            state = 'menu';
+            render();
+        }
+
         // 3. 鍵盤控制
         document.addEventListener('keydown', (e) => {
             // [空白鍵]: 播放 / 暫停 (最重要功能)
-            if (e.code === 'Space') {
-                e.preventDefault(); // 防止捲動頁面
-                if (player && player.getPlayerState) {
-                    const playerState = player.getPlayerState();
-                    if (playerState === 1) { // 正在播
-                        player.pauseVideo();
-                    } else { // 沒在播
-                        player.playVideo();
-                    }
-                }
-            }
+            if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
 
             // [右鍵]: 下一階段
-            if (e.code === 'ArrowRight') {
-                if (currentIndex === -1) {
-                    currentIndex = 0;
-                    state = 'question';
-                } else if (state === 'question') {
-                    state = 'answer';
-                } else {
-                    currentIndex++;
-                    state = 'question';
-                }
-                render();
-            }
+            if (e.code === 'ArrowRight') { nextStage(); }
 
             // [Enter]: 秀出 MV 畫面 (彩蛋功能)
-            if (e.code === 'Enter') {
-                const playerContainer = document.getElementById('player-container');
-                playerContainer.classList.toggle('reveal');
-            }
+            if (e.code === 'Enter') { toggleMV(); }
 
             // [Esc]: 返回選單
-            if (e.code === 'Escape') {
-                state = 'menu';
-                render();
+            if (e.code === 'Escape') { backToMenu(); }
+
+            // [Backspace]: 回到首頁 (index.html)
+            if (e.code === 'Backspace') {
+                window.location.href = 'index.html';
             }
         });
 
