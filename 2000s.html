@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>猜歌王 - 1990年代</title>
+    <title>猜歌王 - 2000年代</title>
     <style>
         /* 基礎設定 */
         body {
@@ -131,7 +131,7 @@
     <!-- 選單介面 -->
     <div id="menu-view" class="menu-view">
         <h1 style="margin-bottom: 30px; font-size: 3rem;">請選擇題目</h1>
-        <h1 style="margin-bottom: 30px; font-size: 3rem;">1990年代歌曲</h1>
+        <h1 style="margin-bottom: 30px; font-size: 3rem;">2000年代歌曲</h1>
         <div id="menu-grid" class="menu-grid"></div>
         <!-- <div style="margin-top: 30px; color: #7f8c8d;" class="desktop-only">按 [Esc] 返回選單 | 按 [Backspace] 回首頁</div> -->
         <!-- 手機版回首頁按鈕 -->
@@ -157,9 +157,9 @@
         <!-- 遊戲控制按鈕 (手機/滑鼠操作) -->
         <div class="control-bar">
             <button class="c-btn" onclick="togglePlay()">⏯<br>播放/暫停</button>
-            <button class="c-btn" onclick="nextStage()">➡<br>下一步</button>
-            <button class="c-btn" onclick="toggleMV()">📺<br>看MV</button>
-            <button class="c-btn" onclick="backToMenu()">☰<br>返回選單</button>
+            <button class="c-btn" onclick="nextStage()">➡<br>公佈答案</button>
+            <button class="c-btn" onclick="backToMenu()">☰<br>題目選單</button>
+            <button class="c-btn" onclick="window.location.href='index.html'">🏠<br>返回首頁</button>
         </div>
     </div>
 
@@ -168,7 +168,7 @@
     </div>
 
     <div class="footer-hint">
-        [空白鍵] 播放/暫停 | [→] 下一題 | [Enter] 顯示MV | F11 全螢幕 | [Esc] 返回選單 | [Backspace] 回首頁
+        [空白鍵] 播放/暫停 | [←] 題目選單 | [→] 看答案 | [Esc] 返回首頁
     </div>
 
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -383,6 +383,28 @@
             render();
         }
 
+        function previousStage() {
+            if (state === 'answer') {
+                state = 'question';
+            } else if (state === 'question') {
+                if (currentIndex === 0) {
+                    currentIndex = -1;
+                    if (player && player.stopVideo) player.stopVideo();
+                } else if (currentIndex > 0) {
+                    currentIndex--;
+                    state = 'answer';
+                }
+            }
+            render();
+        }
+
+        function showAnswer() {
+            if (state === 'question') {
+                state = 'answer';
+                render();
+            }
+        }
+
         function toggleMV() {
             const playerContainer = document.getElementById('player-container');
             playerContainer.classList.toggle('reveal');
@@ -398,19 +420,25 @@
             // [空白鍵]: 播放 / 暫停 (最重要功能)
             if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
 
-            // [右鍵]: 下一階段
-            if (e.code === 'ArrowRight') { nextStage(); }
+            // [左鍵]: 返回題目選單
+            if (e.code === 'ArrowLeft') { backToMenu(); }
+
+            // [右鍵]: 顯示答案
+            if (e.code === 'ArrowRight') { showAnswer(); }
+
+            // [Esc]: 返回首頁 (index.html)
+            if (e.code === 'Escape') {
+                window.location.href = 'index.html';
+            }
+
+            // [上鍵]: 上一階段
+            if (e.code === 'ArrowUp') { previousStage(); }
+
+            // [下鍵]: 下一階段
+            if (e.code === 'ArrowDown') { nextStage(); }
 
             // [Enter]: 秀出 MV 畫面 (彩蛋功能)
             if (e.code === 'Enter') { toggleMV(); }
-
-            // [Esc]: 返回選單
-            if (e.code === 'Escape') { backToMenu(); }
-
-            // [Backspace]: 回到首頁 (index.html)
-            if (e.code === 'Backspace') {
-                window.location.href = 'index.html';
-            }
         });
 
         // 初始化
