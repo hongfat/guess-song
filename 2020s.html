@@ -266,10 +266,19 @@
                     'enablejsapi': 1
                 },
                 events: {
+                    'onReady': onPlayerReady, // 新增：監聽準備就緒
                     'onStateChange': onPlayerStateChange,
                     'onError': onPlayerError // 新增錯誤監聽
                 }
             });
+        }
+
+        // 新增：錯誤處理函式
+        function onPlayerReady(event) {
+            // 如果使用者在播放器載入前就已經選了題目，這時候要補執行 render() 來 Cue 歌
+            if (state === 'question') {
+                render();
+            }
         }
 
         // 新增：錯誤處理函式
@@ -380,6 +389,8 @@
                         startSeconds: currentSong.start
                     });
                     document.getElementById('status-text').textContent = "音樂已就緒 (按空白鍵播放)";
+                } else {
+                    document.getElementById('status-text').textContent = "播放器載入中...";
                 }
 
             } else {
